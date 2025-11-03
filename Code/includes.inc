@@ -16,6 +16,22 @@
         defc SpriteRegPort		= 0x57
         defc SpriteShapePort 		= 0x5b
 
+        ; File system
+        defc M_GETSETDRV                = $89
+        defc F_OPEN                     = $9a
+        defc F_CLOSE                    = $9b
+        defc F_READ                     = $9d
+        defc F_WRITE                    = $9e
+        defc F_SEEK                     = $9f
+        defc F_STAT                     = $a1                   ; get file stats - 11 byte buffer needed
+        defc FA_READ                    = $01
+        defc FA_APPEND                  = $06
+        defc FA_OVERWRITE               = $0C
+
+        defc MAX_FILENAME_LEN           = 64                    ; includes ,0 at the end
+        defc LOADING_BANK               = $56                   ; the MMU register we're using
+        defc LOADING_BASE_ADD           = $c000                 ; base of bank we'll be loading into
+
 
 	; half row 1
         defc VK_CAPS	=	0

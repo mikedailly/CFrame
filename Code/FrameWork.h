@@ -32,6 +32,16 @@ typedef enum eGameStateType
 	State_QuitGame,			// quot the game
 }eGameState;
 
+typedef	struct SHWSprite
+{
+	uint8	X;
+	uint8	Y;
+	uint8	Palette_FlipRotate;
+	uint8	Visible_1_Name;
+	uint8	H_N6_Scale_Y8;
+
+}SHWSprite,*PSHWSprite;
+
 
 #endif // __FRAMEWORK_H__
 
