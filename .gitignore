@@ -39,3 +39,11 @@ Bin/ZXOS.bat
 *.bin
 *.nex
 *.map
+Code/data.c.lis
+Code/FrontEnd_Asm.asm.lis
+Code/FrontEnd_Overlay.c.lis
+Code/GamePlay_Asm.asm.lis
+Code/GamePlay_Overlay.c.lis
+Code/IRQs.asm.lis
+Code/Kernel.asm.lis
+Code/main.c.lis
