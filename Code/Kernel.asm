@@ -1,7 +1,7 @@
 
     SECTION KERNEL_CODE
     PUBLIC  _WaitVBlank, _Layer2Enable, _ClsATTR, _ClsULA, _PrintHex, _DMACopy, _UploadSprites, _ReadKeyboard, _InitKernel
-    PUBLIC  _Keys, _RawKeys, _RomFont, _Print,  _CopySpriteData, _ReadNextReg,_InitSpriteData,_WipeSprites, _Border, _UploadCopper
+    PUBLIC  _Keys, _RawKeys, _RomFont, _Print,  _CopySpriteData, _ReadNextReg,_InitSpriteData,_WipeSprites, _Border, _UploadCopper, _DebugPrint
 
     EXTERN  _VBlank, _Port123b, _SpriteData, _SpriteShape, _PrintOffset
 
@@ -15,11 +15,76 @@ _InitKernel:
     ld      hl,0x3d00
     ld      de,_RomFont
     ld      bc,0x300
-    call    DMACopy
-    
+    call    DMACopy    
     ret
 
-    ; ******************************************************************************************************************************
+
+; ******************************************************************************************************************************
+;   Debug printing
+; ******************************************************************************************************************************
+_DebugPrint:
+    ld      (StackStorage),sp
+
+    pop     hl          ; get return
+    pop     hl          ; get message
+
+    ld      iyl,0
+    ld      de,_Message
+CopyMessage:
+    ld      a,(hl)
+    ld      (de),a
+    inc     hl
+    inc     de
+    cp      '%'
+    jr      nz,NotArg
+    inc     iyl         ; count args
+
+NotArg:
+    and     a
+    jr      nz,CopyMessage
+
+
+CopyArgs:
+    ld      a,iyl
+    and     a
+    jr      z,DoPrint
+
+    pop     hl
+    ld      a,l             ; make 32 bit number
+    ld      (de),a
+    inc     de
+    ld      a,h
+    ld      (de),a
+    inc     de
+    xor     a
+    ld      (de),a
+    inc     de
+    ld      (de),a
+    inc     de
+
+    dec     iyl
+    jr      nz,CopyArgs
+
+
+DoPrint:
+    ld      a,$50               ; changes BC
+    call    ReadNextRegsSYS
+
+    NextReg $50,$ff             ; set ROM
+    ld      hl,_Message
+    rst     $18                 ; CSpect DEBUG PRINT extension 
+    nop                         ; no actual code run
+
+    ; A hasn't changed as CSpect code doesn't change registers
+    NextReg $50,a
+
+    ld      sp,(StackStorage)   ; restore stack (and all args)
+    ret
+
+
+
+
+; ******************************************************************************************************************************
 ;   Wipe all sprites
 ; ******************************************************************************************************************************
 _WipeSprites:
@@ -437,10 +502,6 @@ ExitKeyRead:
 
 ; ******************************************************************************
 ; Function: Copy sprite data (x,y etc) to BRAM (assumes extended data)
-; In:   hl = Src
-;       d = slot
-;       a = count
-;       
 ;
 ;   |*|*||0011 0000 0011 1011| 0x303b  |Sprite slot, flags
 ;   | |*||XXXX XXXX 0101 0111| 0x57    |Sprite attributes
@@ -451,7 +512,7 @@ _CopySpriteData:
         ld      hl,_SpriteData
         ld      (DMASpSrc),hl                       ; 16
         ld      bc,$303b
-        out     (c),d
+        out     (c),0
         ld      hl,640                              ; 128 * 5
         ld      (DMASpLen),hl                       ; store size
         ld      hl,DMASpriteCopyProg                ; 10
@@ -871,7 +932,8 @@ Load_Filename:      ds  MAX_FILENAME_LEN  ; space to copy the filename - incase 
 Bank50:             db  0   ; Remmeber Bank 50
 Bank51:             db  0   ; Remmeber Bank 51
 LoadBankWorkspace:  db  0   ; Rememebr Bank 56
-_PrintOffset:       db  0   ; offset from $4000
+StackStorage:       db  0   ; Used in var args to remember stack pointer
+_PrintOffset:       dw  0   ; offset from $4000
 
 
 ;   +0(1) '*'
@@ -887,6 +949,8 @@ TempBuffer:         ds  64
                     defc BytesToRequest = FileStatsBuffer+2
                     defc PrintCoords = FileStatsBuffer
 
+
+_Message:           ds  256     ; space for the debug print
 
 
 

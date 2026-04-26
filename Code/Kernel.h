@@ -65,6 +65,10 @@ extern	SHWSprite	SpriteData[128];
 extern	uint8		SpriteShape[512];
 extern	uint8		PrintOffset;			// offset from $4000 for 
 
+
+extern void	DebugPrint(char* _message,...);
+
+
 extern void 	InitKernel(void);
 extern void 	SetUpIRQs(void) __preserves_regs(b,c,d,e,h,l,iyl,iyh);
 extern void 	WaitVBlank(void)  __preserves_regs(b,c,d,e,h,l,iyl,iyh);

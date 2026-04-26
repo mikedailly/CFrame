@@ -50,7 +50,11 @@ void GP_Process( void )
         Keys[VK_2] = 0;
         SetState(State_QuitGame);
     }
-
+    if( Keys[VK_0]!=0)
+    {
+        Keys[VK_0] = 0;
+        DebugPrint("Hello World 0x%4X, %d",0x1234,0x1234);
+    }
     counter++;
 } 
 
