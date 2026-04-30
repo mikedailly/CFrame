@@ -24,12 +24,21 @@ _InitKernel:
 ; ******************************************************************************************************************************
 _DebugPrint:
     ld      (StackStorage),sp
+    ld      (IXStorage),ix
 
     pop     hl          ; get return
     pop     hl          ; get message
 
+
+    ; ---------------------------------------------------------
+    ; Copy message, and work out argument sizes and number
+    ; ---------------------------------------------------------
+    ld      de,StringArgs
+    ld      (StringPtr),de
+
+    ld      ix,ArgList 
     ld      iyl,0
-    ld      de,_Message
+    ld      de,Message
 CopyMessage:
     ld      a,(hl)
     ld      (de),a
@@ -38,32 +47,141 @@ CopyMessage:
     cp      '%'
     jr      nz,NotArg
     inc     iyl         ; count args
+MoreDigits:
+    ld      a,(hl)
+    cp      '0'
+    jr      c,SkipDigits
+    cp      '9'+1
+    jr      nc,SkipDigits
+
+    ; we had a digit, so we need to advance and copy the next one
+    ld      (de),a
+    inc     hl
+    inc     de
+    and     a
+    jr      z,CopyArgs  ; end of message
+
+    jr      MoreDigits
+SkipDigits:
+    cp      'X'
+    jr      z,Do32bit       ; hex
+    cp      'x'
+    jr      z,Do32bit
+    cp      'd'
+    jr      z,Do32bit       ; decimal
+    cp      'b'
+    jr      z,Do32bit       ; binary
+
+    cp      's'
+    jr      z,Do16bit       ; strings
+
+    cp      'r'
+    jr      z,DoNoArgs      ; registers
+    cp      'R'
+    jr      nz,NotArg
+
+DoNoArgs:
+    ld      a,(hl)          ; reg lower byte    'AF', 'im' etc.
+    ld      (de),a
+    inc     hl
+    inc     de
+
+    ld      a,(hl)          ; reg lower byte    'AF', 'im' etc.
+    ld      (de),a
+    inc     hl
+    inc     de
+
+    xor     a               ; 0=no args
+    ld      (ix+0),a
+    inc     ix
+    jr      CopyMessage
+
+Do16bit:
+    ld      a,2             ; 2=address
+    ld      (ix+0),a
+    inc     ix
+    jr      CopyMessage
+
+Do32bit:
+    ld      a,4             ; 4=INT32
+    ld      (ix+0),a
+    inc     ix
+    jr      CopyMessage
+    
 
 NotArg:
     and     a
     jr      nz,CopyMessage
 
 
+
+
+    ; ----------------------------------------------------------------------
+    ; Now copy the args over, and copy any text messages into the tmp buffer
+    ; ----------------------------------------------------------------------
 CopyArgs:
+    ld      ix,ArgList 
+
+CopyArgs_Loop:
     ld      a,iyl
     and     a
     jr      z,DoPrint
 
-    pop     hl
+    ld      a,(ix+0)
+    inc     ix
+    and     a
+    jr      z,DoNextArg
+    cp      2
+    jr      nz,TryNextArg
+DebugStringPrint:
+    pop     hl              ; copy 2 byte string address
+    push    de
+    ld      de,(StringPtr)
+
+CopyAlltest:
+    ld      a,(hl)          ; copy the start - and the ,0 at the end
+    ld      (de),a          ; we do this because the text might be paged out
+    inc     hl
+    inc     de
+    and     a
+    jr      nz,CopyAlltest
+
+
+    ld      hl,(StringPtr)
+    ld      (StringPtr),de
+    pop     de
     ld      a,l             ; make 32 bit number
     ld      (de),a
     inc     de
     ld      a,h
     ld      (de),a
     inc     de
-    xor     a
+    jr      DoNextArg
+
+TryNextArg:
+    cp      4
+    jr      nz,DoNextArg
+
+    pop     hl
+    ld      a,l             ; make 32 bit number (out of UINT16)
     ld      (de),a
     inc     de
+    ld      a,h
     ld      (de),a
     inc     de
 
+    xor     a               ; Clear high byte
+    ;pop     hl             ; if you want 32bit numbers, uncomment these
+    ;ld      a,l
+    ld      (de),a
+    inc     de
+    ;ld      a,h
+    ld      (de),a
+    inc     de
+
+DoNextArg:
     dec     iyl
-    jr      nz,CopyArgs
+    jr      nz,CopyArgs_Loop
 
 
 DoPrint:
@@ -71,13 +189,14 @@ DoPrint:
     call    ReadNextRegsSYS
 
     NextReg $50,$ff             ; set ROM
-    ld      hl,_Message
+    ld      hl,Message
     rst     $18                 ; CSpect DEBUG PRINT extension 
     nop                         ; no actual code run
 
     ; A hasn't changed as CSpect code doesn't change registers
     NextReg $50,a
 
+    ld      ix,(IXStorage)
     ld      sp,(StackStorage)   ; restore stack (and all args)
     ret
 
@@ -932,7 +1051,9 @@ Load_Filename:      ds  MAX_FILENAME_LEN  ; space to copy the filename - incase 
 Bank50:             db  0   ; Remmeber Bank 50
 Bank51:             db  0   ; Remmeber Bank 51
 LoadBankWorkspace:  db  0   ; Rememebr Bank 56
-StackStorage:       db  0   ; Used in var args to remember stack pointer
+StackStorage:       dw  0   ; Used in var args to remember stack pointer
+IXStorage:          dw  0   ; Used in var args to remember stack pointer
+StringPtr:          dw  0       ; Temp string pointer
 _PrintOffset:       dw  0   ; offset from $4000
 
 
@@ -949,9 +1070,9 @@ TempBuffer:         ds  64
                     defc BytesToRequest = FileStatsBuffer+2
                     defc PrintCoords = FileStatsBuffer
 
-
-_Message:           ds  256     ; space for the debug print
-
+ArgList:            ds  32      ; max of 32 args
+Message:            ds  256     ; space for the debug print
+StringArgs:         ds  512     ; Space for string args to be copied
 
 
 

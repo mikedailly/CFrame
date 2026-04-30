@@ -45,15 +45,19 @@ void GP_Init( void )
 //  ***************************************************************************************
 void GP_Process( void )
 {
+
     if( Keys[VK_2]!=0)
     {
         Keys[VK_2] = 0;
         SetState(State_QuitGame);
     }
+
+
+    // Test CSpect's DebugPrint
     if( Keys[VK_0]!=0)
     {
         Keys[VK_0] = 0;
-        DebugPrint("Hello World 0x%4X, %d",0x1234,0x1234);
+        DebugPrint("Hello World 0x%4X, %s, AF=%raf HL=%rhl DE=%rde %d",0x1234, "Hello World2", 0x1234);
     }
     counter++;
 } 
