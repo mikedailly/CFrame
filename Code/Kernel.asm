@@ -40,6 +40,9 @@ _DebugPrint:
     ld      iyl,0
     ld      de,Message
 CopyMessage:
+    xor     a           ; clear arg
+    ld      (ix+0),a
+
     ld      a,(hl)
     ld      (de),a
     inc     hl
@@ -63,6 +66,16 @@ MoreDigits:
 
     jr      MoreDigits
 SkipDigits:
+    cp      'l'
+    jr      nz,NotLong
+    ld      (de),a
+    inc     hl
+    inc     de
+    ld      a,128           ; flag as a 32bit
+    ld      (ix+0),a
+    ld      a,(hl)          ; get next character
+
+NotLong:
     cp      'X'
     jr      z,Do32bit       ; hex
     cp      'x'
@@ -97,13 +110,14 @@ DoNoArgs:
     jr      CopyMessage
 
 Do16bit:
-    ld      a,2             ; 2=address
+    ld      a,2             ; 2=address - clear flag.
     ld      (ix+0),a
     inc     ix
     jr      CopyMessage
 
 Do32bit:
-    ld      a,4             ; 4=INT32
+    ld      a,4             ; 4=INT16/INT32
+    or      (ix+0)
     ld      (ix+0),a
     inc     ix
     jr      CopyMessage
@@ -159,23 +173,35 @@ CopyAlltest:
     jr      DoNextArg
 
 TryNextArg:
+    cp      $84
+    jr      z,Read32Bit
     cp      4
     jr      nz,DoNextArg
 
+Read16Bit:
     pop     hl
-    ld      a,l             ; make 32 bit number (out of UINT16)
+    ld      a,l             ; read 16 bit number
     ld      (de),a
     inc     de
     ld      a,h
     ld      (de),a
     inc     de
+    jr      DoNextArg
 
-    xor     a               ; Clear high byte
-    ;pop     hl             ; if you want 32bit numbers, uncomment these
-    ;ld      a,l
+Read32Bit:
+    pop     hl
+    ld      a,l             ; read 32 bit number
+    ld      (de),a          ; lower 16bits
+    inc     de
+    ld      a,h
     ld      (de),a
     inc     de
-    ;ld      a,h
+
+    pop     hl             ; top 16bits
+    ld      a,l
+    ld      (de),a
+    inc     de
+    ld      a,h
     ld      (de),a
     inc     de
 

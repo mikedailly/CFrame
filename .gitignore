@@ -47,3 +47,10 @@ Code/GamePlay_Overlay.c.lis
 Code/IRQs.asm.lis
 Code/Kernel.asm.lis
 Code/main.c.lis
+Bin/beast.sh
+Bin/MemoryViewer.dll
+Bin/mod_player.sh
+Bin/NXtel.sh
+Bin/parallax.sh
+Bin/SNASM.doc
+Bin/ZXOS.sh
